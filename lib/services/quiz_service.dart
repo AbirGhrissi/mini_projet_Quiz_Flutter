@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../model/quiz_model.dart';
 
@@ -8,7 +9,6 @@ class QuizService {
   static const int _maxRetries = 2;
   static const Duration _timeoutDuration = Duration(seconds: 10);
 
-  // Fonction pour récupérer les catégories disponibles
   Future<List<Map<String, String>>> fetchCategories() async {
     int attempt = 0;
     while (attempt < _maxRetries) {
@@ -38,13 +38,12 @@ class QuizService {
           throw Exception(
               'Échec du chargement des catégories après $_maxRetries tentatives: $e');
         }
-        await Future.delayed(Duration(seconds: 1));
+        await Future.delayed(const Duration(seconds: 1));
       }
     }
     throw Exception('Impossible de charger les catégories');
   }
 
-  // Fonction pour récupérer les questions
   Future<List<Question>> fetchQuestions(
       String category, String difficulty, int numberOfQuestions) async {
     if (numberOfQuestions <= 0 || numberOfQuestions > 50) {
@@ -83,7 +82,7 @@ class QuizService {
           throw Exception(
               'Échec du chargement des questions après $_maxRetries tentatives: $e');
         }
-        await Future.delayed(Duration(seconds: 1));
+        await Future.delayed(const Duration(seconds: 1));
       }
     }
     throw Exception('Impossible de charger les questions');

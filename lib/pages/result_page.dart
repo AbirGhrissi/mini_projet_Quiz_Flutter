@@ -1,7 +1,67 @@
 import 'package:flutter/material.dart';
+import '../services/translation_service.dart';
 
-class ResultsPage extends StatelessWidget {
-  const ResultsPage({super.key});
+class ResultsPage extends StatefulWidget {
+  final String currentLanguage;
+  final TranslationService translationService;
+
+  const ResultsPage({
+    super.key,
+    required this.currentLanguage,
+    required this.translationService,
+  });
+
+  @override
+  State<ResultsPage> createState() => _ResultsPageState();
+}
+
+class _ResultsPageState extends State<ResultsPage> {
+  late Map<String, String> _translatedTexts = {};
+  bool _isTranslating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _translateStaticTexts();
+  }
+
+  Future<void> _translateStaticTexts() async {
+    setState(() => _isTranslating = true);
+
+    final englishTexts = {
+      'title': 'Results',
+      'congratulations': 'Congratulations!',
+      'well_done': 'Well done!',
+      'quiz_completed': 'You completed the quiz',
+      'final_score': 'Final score',
+      'new_quiz': 'New quiz',
+      'try_again': 'Try again',
+      'success_threshold': '70% to pass',
+    };
+
+    if (widget.currentLanguage == 'en') {
+      setState(() {
+        _translatedTexts = englishTexts;
+        _isTranslating = false;
+      });
+      return;
+    }
+
+    final translated = <String, String>{};
+    for (final entry in englishTexts.entries) {
+      try {
+        translated[entry.key] =
+        await widget.translationService.translateText(entry.value);
+      } catch (e) {
+        translated[entry.key] = entry.value;
+      }
+    }
+
+    setState(() {
+      _translatedTexts = translated;
+      _isTranslating = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,13 +71,25 @@ class ResultsPage extends StatelessWidget {
     final percentage = (score / total * 100).round();
     final isSuccess = percentage >= 70;
 
+    if (_isTranslating) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text('Loading...'),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Résultats'),
+        title: Text(_translatedTexts['title'] ?? 'Results'),
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.deepPurple,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -43,7 +115,9 @@ class ResultsPage extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             Text(
-              isSuccess ? 'Félicitations!' : 'Bien joué!',
+              isSuccess
+                  ? _translatedTexts['congratulations'] ?? 'Congratulations!'
+                  : _translatedTexts['well_done'] ?? 'Well done!',
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -51,7 +125,7 @@ class ResultsPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Vous avez terminé le quiz',
+              _translatedTexts['quiz_completed'] ?? 'You completed the quiz',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey.shade600,
@@ -67,7 +141,7 @@ class ResultsPage extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    'Score final',
+                    _translatedTexts['final_score'] ?? 'Final score',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey.shade600,
@@ -90,6 +164,14 @@ class ResultsPage extends StatelessWidget {
                       color: Colors.grey.shade600,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _translatedTexts['success_threshold'] ?? '70% to pass',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -108,18 +190,38 @@ class ResultsPage extends StatelessWidget {
                     onPressed: () {
                       Navigator.popUntil(context, (route) => route.isFirst);
                     },
-                    child: const Text(
-                      'Nouveau quiz',
-                      style: TextStyle(fontSize: 16,
-                      color: Colors.black,),
+                    child: Text(
+                      _translatedTexts['new_quiz'] ?? 'New quiz',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            if (!isSuccess)
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  _translatedTexts['try_again'] ?? 'Try again',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    widget.translationService.dispose();
+    super.dispose();
   }
 }

@@ -2,7 +2,18 @@ import 'package:flutter/material.dart';
 import '../services/quiz_service.dart';
 
 class QuizSettingsPage extends StatefulWidget {
-  const QuizSettingsPage({super.key});
+  final String currentLanguage;
+  final Function(String) onChangeLanguage;
+  final bool isDarkMode;
+  final void Function(bool) onThemeChanged;
+
+  const QuizSettingsPage({
+    Key? key,
+    required this.currentLanguage,
+    required this.onChangeLanguage,
+    required this.isDarkMode,
+    required this.onThemeChanged,
+  }) : super(key: key);
 
   @override
   _QuizSettingsPageState createState() => _QuizSettingsPageState();
@@ -20,6 +31,105 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
     _categories = QuizService().fetchCategories();
   }
 
+  Widget _buildLanguageCard() {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _translate('language'),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: widget.currentLanguage,
+              isExpanded: true,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.grey.shade300,
+                    width: 1,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              items: const [
+                DropdownMenuItem<String>(
+                  value: 'fr',
+                  child: Text('Français', style: TextStyle(fontSize: 16)),
+                ),
+                DropdownMenuItem<String>(
+                  value: 'en',
+                  child: Text('English', style: TextStyle(fontSize: 16)),
+                ),
+                DropdownMenuItem<String>(
+                  value: 'ar',
+                  child: Text('العربية', style: TextStyle(fontSize: 16)),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  widget.onChangeLanguage(value);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _translate(String key) {
+    final translations = {
+      'language': {
+        'en': 'Language',
+        'fr': 'Langue',
+        'ar': 'اللغة'
+      },
+      'category': {
+        'en': 'Category',
+        'fr': 'Catégorie',
+        'ar': 'الفئة'
+      },
+      'difficulty': {
+        'en': 'Difficulty',
+        'fr': 'Difficulté',
+        'ar': 'الصعوبة'
+      },
+      'question_count': {
+        'en': 'Number of questions',
+        'fr': 'Nombre de questions',
+        'ar': 'عدد الأسئلة'
+      },
+      'start_quiz': {
+        'en': 'START QUIZ',
+        'fr': 'COMMENCER LE QUIZ',
+        'ar': 'ابدأ الاختبار'
+      }
+    };
+
+    return translations[key]?[widget.currentLanguage] ?? key;
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,6 +139,19 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.deepPurple,
+        actions: [
+          Row(
+            children: [
+              const Icon(Icons.dark_mode, color: Colors.deepPurple),
+              Switch(
+                value: widget.isDarkMode,
+                onChanged: widget.onThemeChanged,
+                activeColor: Colors.deepPurple,
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -57,6 +180,8 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 16),
+                  _buildLanguageCard(),
+                  const SizedBox(height: 20),
                   _buildCategoryCard(snapshot.data!),
                   const SizedBox(height: 20),
                   _buildDifficultyCard(),
@@ -207,15 +332,15 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                 fillColor: Colors.grey.shade50,
               ),
               items: const [
-                DropdownMenuItem(
+                DropdownMenuItem<String>(
                   value: 'easy',
                   child: Text('Facile', style: TextStyle(fontSize: 16)),
                 ),
-                DropdownMenuItem(
+                DropdownMenuItem<String>(
                   value: 'medium',
                   child: Text('Moyen', style: TextStyle(fontSize: 16)),
                 ),
-                DropdownMenuItem(
+                DropdownMenuItem<String>(
                   value: 'hard',
                   child: Text('Difficile', style: TextStyle(fontSize: 16)),
                 ),
@@ -275,15 +400,15 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                 fillColor: Colors.grey.shade50,
               ),
               items: const [
-                DropdownMenuItem(
+                DropdownMenuItem<int>(
                   value: 5,
                   child: Text('5 Questions', style: TextStyle(fontSize: 16)),
                 ),
-                DropdownMenuItem(
+                DropdownMenuItem<int>(
                   value: 10,
                   child: Text('10 Questions', style: TextStyle(fontSize: 16)),
                 ),
-                DropdownMenuItem(
+                DropdownMenuItem<int>(
                   value: 15,
                   child: Text('15 Questions', style: TextStyle(fontSize: 16)),
                 ),

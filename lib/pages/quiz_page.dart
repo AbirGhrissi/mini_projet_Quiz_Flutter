@@ -1,11 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../model/score_model.dart';
 import '../services/quiz_service.dart';
 import '../model/quiz_model.dart';
+import '../services/translation_service.dart';
+import '../services/score_service.dart';
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key});
+  final String currentLanguage;
+  final TranslationService translationService;
+
+  const QuizPage({
+    super.key,
+    required this.currentLanguage,
+    required this.translationService,
+  });
 
   @override
   _QuizPageState createState() => _QuizPageState();
@@ -18,10 +28,10 @@ class _QuizPageState extends State<QuizPage> {
   int _totalQuestions = 0;
   bool _isAnswerSelected = false;
   String? _selectedAnswer;
-  int _timeLeft = 30; // 30 secondes par question
+  int _timeLeft = 30;
   late Timer _timer;
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final int _questionDuration = 30; // Durée en secondes
+  final int _questionDuration = 30;
 
   @override
   void initState() {
@@ -41,20 +51,24 @@ class _QuizPageState extends State<QuizPage> {
       setState(() {
         if (_timeLeft > 0) {
           _timeLeft--;
-          // Jouer un son d'avertissement quand il reste 5 secondes
           if (_timeLeft == 5) {
-            _playSound('sounds/warning.wav');
+            _playSound('warning');
           }
         } else {
-          _playSound('sounds/timeout.wav');
+          _playSound('timeout');
           _moveToNextQuestion();
         }
       });
     });
   }
 
-  Future<void> _playSound(String soundFile) async {
-    await _audioPlayer.play(AssetSource(soundFile));
+  Future<void> _playSound(String soundType) async {
+    try {
+      final soundFile = 'sounds/${soundType}_${widget.currentLanguage}.wav';
+      await _audioPlayer.play(AssetSource(soundFile));
+    } catch (e) {
+      debugPrint('Error playing sound: $e');
+    }
   }
 
   void _moveToNextQuestion() {
@@ -67,6 +81,7 @@ class _QuizPageState extends State<QuizPage> {
         _selectedAnswer = null;
         _startTimer();
       } else {
+        _saveScore();
         Navigator.pushReplacementNamed(
           context,
           '/results',
@@ -77,6 +92,18 @@ class _QuizPageState extends State<QuizPage> {
         );
       }
     });
+  }
+
+  Future<void> _saveScore() async {
+    final args = ModalRoute.of(context)!.settings.arguments as Map;
+    final scoreService = ScoreService();
+    await scoreService.saveScore(QuizScore(
+      category: args['category'].toString(),
+      difficulty: args['difficulty'].toString(),
+      score: _score,
+      total: _totalQuestions,
+      date: DateTime.now(),
+    ));
   }
 
   @override
@@ -91,23 +118,144 @@ class _QuizPageState extends State<QuizPage> {
     );
   }
 
-  void _answerQuestion(String selectedOption, String correctAnswer) {
+  void _answerQuestion(String selectedOption, String correctAnswer) async {
     _timer.cancel();
+
+    final translatedSelected = widget.currentLanguage == 'en'
+        ? selectedOption
+        : await widget.translationService.translateText(selectedOption);
+
+    final translatedCorrect = widget.currentLanguage == 'en'
+        ? correctAnswer
+        : await widget.translationService.translateText(correctAnswer);
+
     setState(() {
       _isAnswerSelected = true;
       _selectedAnswer = selectedOption;
 
-      if (selectedOption == correctAnswer) {
+      if (translatedSelected == translatedCorrect) {
         _score++;
-        _playSound('sounds/correct.wav');
+        _playSound('correct');
       } else {
-        _playSound('sounds/wrong.wav');
+        _playSound('wrong');
       }
 
       Future.delayed(const Duration(milliseconds: 1500), () {
         _moveToNextQuestion();
       });
     });
+  }
+
+  Widget _buildTranslatedQuestion(String questionText) {
+    return FutureBuilder<String>(
+      future: widget.currentLanguage == 'en'
+          ? Future.value(questionText)
+          : widget.translationService.translateText(questionText),
+      builder: (context, snapshot) {
+        final displayText = snapshot.data ?? questionText;
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(
+              displayText,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTranslatedOption(String option, bool isCorrect, bool isSelected) {
+    return FutureBuilder<String>(
+      future: widget.currentLanguage == 'en'
+          ? Future.value(option)
+          : widget.translationService.translateText(option),
+      builder: (context, snapshot) {
+        final displayText = snapshot.data ?? option;
+
+        Color buttonColor = Colors.white;
+        if (_isAnswerSelected) {
+          if (isSelected) {
+            buttonColor = isCorrect ? Colors.green.shade100 : Colors.red.shade100;
+          } else if (isCorrect) {
+            buttonColor = Colors.green.shade100;
+          }
+        }
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: buttonColor,
+            border: Border.all(
+              color: _isAnswerSelected && isSelected
+                  ? isCorrect ? Colors.green : Colors.red
+                  : Colors.grey.shade300,
+              width: 1.5,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: _isAnswerSelected
+                  ? null
+                  : () => _answerQuestion(option, isCorrect ? option : ''),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayText,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: _isAnswerSelected && isSelected
+                              ? isCorrect
+                              ? Colors.green.shade900
+                              : Colors.red.shade900
+                              : Colors.black,
+                        ),
+                      ),
+                    ),
+                    if (_isAnswerSelected && isSelected)
+                      Icon(
+                        isCorrect ? Icons.check : Icons.close,
+                        color: isCorrect ? Colors.green : Colors.red,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _translate(String key) {
+    final translations = {
+      'question': {'en': 'Question', 'fr': 'Question', 'ar': 'سؤال'},
+      'no_questions': {
+        'en': 'No questions available',
+        'fr': 'Aucune question disponible',
+        'ar': 'لا توجد أسئلة متاحة'
+      },
+      'back': {'en': 'Back', 'fr': 'Retour', 'ar': 'رجوع'}
+    };
+
+    return translations[key]?[widget.currentLanguage] ?? key;
   }
 
   @override
@@ -117,7 +265,9 @@ class _QuizPageState extends State<QuizPage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Question ${_currentQuestionIndex + 1}/$_totalQuestions'),
+            Text(
+              '${_translate('question')} ${_currentQuestionIndex + 1}/$_totalQuestions',
+            ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -125,7 +275,7 @@ class _QuizPageState extends State<QuizPage> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '$_timeLeft s',
+                '$_timeLeft ${widget.currentLanguage == 'en' ? 's' : 's'}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -156,7 +306,7 @@ class _QuizPageState extends State<QuizPage> {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildErrorScreen('Aucune question disponible');
+            return _buildErrorScreen(_translate('no_questions'));
           }
 
           final currentQuestion = snapshot.data![_currentQuestionIndex];
@@ -166,7 +316,6 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                // Barre de progression du quiz
                 LinearProgressIndicator(
                   value: progress,
                   backgroundColor: Colors.grey[200],
@@ -174,7 +323,6 @@ class _QuizPageState extends State<QuizPage> {
                   minHeight: 6,
                 ),
                 const SizedBox(height: 8),
-                // Barre de temps restant
                 LinearProgressIndicator(
                   value: _timeLeft / _questionDuration,
                   backgroundColor: Colors.grey[200],
@@ -182,30 +330,8 @@ class _QuizPageState extends State<QuizPage> {
                   minHeight: 4,
                 ),
                 const SizedBox(height: 16),
-                // Carte de la question
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Colors.grey.shade200,
-                      width: 1,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
-                      currentQuestion.question,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
+                _buildTranslatedQuestion(currentQuestion.question),
                 const SizedBox(height: 24),
-                // Options de réponse
                 Expanded(
                   child: ListView.separated(
                     itemCount: currentQuestion.options.length,
@@ -215,59 +341,10 @@ class _QuizPageState extends State<QuizPage> {
                       final isCorrect = option == currentQuestion.correctAnswer;
                       final isSelected = option == _selectedAnswer;
 
-                      Color buttonColor = Colors.white;
-                      if (_isAnswerSelected) {
-                        if (isSelected) {
-                          buttonColor = isCorrect ? Colors.green.shade100 : Colors.red.shade100;
-                        } else if (isCorrect) {
-                          buttonColor = Colors.green.shade100;
-                        }
-                      }
-
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: buttonColor,
-                          border: Border.all(
-                            color: _isAnswerSelected && isSelected
-                                ? isCorrect ? Colors.green : Colors.red
-                                : Colors.grey.shade300,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: _isAnswerSelected
-                                ? null
-                                : () => _answerQuestion(option, currentQuestion.correctAnswer),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      option,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: _isAnswerSelected && isSelected
-                                            ? isCorrect ? Colors.green.shade900 : Colors.red.shade900
-                                            : Colors.black,
-                                      ),
-                                    ),
-                                  ),
-                                  if (_isAnswerSelected && isSelected)
-                                    Icon(
-                                      isCorrect ? Icons.check : Icons.close,
-                                      color: isCorrect ? Colors.green : Colors.red,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      return _buildTranslatedOption(
+                        option,
+                        isCorrect,
+                        isSelected,
                       );
                     },
                   ),
@@ -305,9 +382,9 @@ class _QuizPageState extends State<QuizPage> {
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Retour',
-              style: TextStyle(fontSize: 16, color: Colors.black),
+            child: Text(
+              _translate('back'),
+              style: const TextStyle(fontSize: 16, color: Colors.white),
             ),
           ),
         ],
