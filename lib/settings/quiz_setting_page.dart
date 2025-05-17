@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
 import '../pages/historique_page.dart';
+import '../pages/login_page.dart';
 import '../services/quiz_service.dart';
+import '../utils/local_db.dart';
 
 class QuizSettingsPage extends StatefulWidget {
   final String currentLanguage;
@@ -143,9 +146,24 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                 );
               },
             ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Déconnexion'),
+              onTap: () async {
+                Navigator.pop(context); // Ferme le drawer
+                await LocalDB.logoutUser(); // Déconnecte l'utilisateur (sans supprimer les données)
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => LoginPage(cameras: cameras),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
+
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: FutureBuilder<List<Map<String, String>>>(
