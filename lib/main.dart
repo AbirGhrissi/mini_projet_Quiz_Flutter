@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:mini_projet/pages/login_page.dart';
+import 'package:mini_projet/utils/local_db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-import 'auth/auth_page.dart';
+
+import 'model/user.dart';
 import 'settings/quiz_setting_page.dart';
 import 'pages/quiz_page.dart';
 import 'pages/result_page.dart';
@@ -9,13 +15,31 @@ import 'pages/leaderboard_page.dart';
 import 'services/translation_service.dart';
 import 'services/notification_service.dart';
 
-void main() async {
+List<CameraDescription> cameras = [];
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  cameras = await availableCameras();
+
+  await Hive.initFlutter();
+  if (!Hive.isAdapterRegistered(0)) {
+    Hive.registerAdapter(UserAdapter());
+  }
+
+  await LocalDB.init();
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  runApp(MyApp(cameras: cameras));
 }
 
+
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final List<CameraDescription> cameras;
+  const MyApp({super.key, required this.cameras});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -101,7 +125,7 @@ class _MyAppState extends State<MyApp> {
       ),
       initialRoute: '/auth',
       routes: {
-        '/auth': (context) => const AuthPage(),
+        '/auth': (context) => LoginPage(cameras: cameras),
         '/': (context) => QuizSettingsPage(
           currentLanguage: _currentLanguage,
           onChangeLanguage: _changeLanguage,
