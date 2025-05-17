@@ -120,7 +120,7 @@ class _QuizPageState extends State<QuizPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)!.settings.arguments as Map;
-    _isSoundEnabled = args['isSoundEnabled'] ?? true;
+    _isSoundEnabled = args['soundEnabled'] ?? true;
     _totalQuestions = args['numberOfQuestions'] as int;
 
 
