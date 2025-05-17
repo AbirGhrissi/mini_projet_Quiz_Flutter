@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../../model/user.dart';
+import '../../settings/quiz_setting_page.dart';
 import '../../utils/local_db.dart';
 import '../../widgets/common_widgets.dart';
 import '../home_page.dart';
@@ -124,7 +125,18 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
           // Navigue vers la page d'accueil
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => HomePage(cameras: widget.cameras)),
+            MaterialPageRoute(
+              builder: (_) => QuizSettingsPage(
+                currentLanguage: 'fr', // adapte selon la logique de ton appli
+                onChangeLanguage: (lang) {
+                  // Implémente une logique pour changer la langue si nécessaire
+                },
+                isDarkMode: false, // adapte selon l'état actuel du thème
+                onThemeChanged: (isDark) {
+                  // Implémente une logique pour changer le thème si nécessaire
+                },
+              ),
+            ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -142,6 +154,7 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
       setState(() => _isProcessing = false);
     }
   }
+
   Future<void> _toggleFlash() async {
     if (!_isCameraReady) return;
     setState(() => _isFlashOn = !_isFlashOn);
