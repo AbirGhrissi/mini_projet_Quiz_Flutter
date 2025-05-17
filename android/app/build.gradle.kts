@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.miniProjet.mini_projet"
-    compileSdk = 35  // Mets à jour ici la version du SDK
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         applicationId = "com.miniProjet.mini_projet"
-        minSdkVersion(23)
+        minSdkVersion(26)
         targetSdkVersion(33)
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -44,5 +44,6 @@ flutter {
 dependencies {
     // Ajoute la dépendance pour le desugaring des librairies Java 8
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.12.0")
     // Autres dépendances...
 }
