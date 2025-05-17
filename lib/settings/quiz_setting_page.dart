@@ -130,9 +130,19 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
             SwitchListTile(
               title: const Text("Mode Sombre"),
               value: widget.isDarkMode,
-              onChanged: widget.onThemeChanged,
-              secondary: const Icon(Icons.dark_mode),
+              onChanged: (value) {
+                // Force un rebuild complet avec la nouvelle valeur
+                widget.onThemeChanged(!widget.isDarkMode);
+
+                // Solution alternative si le rebuild ne se fait pas
+                Future.delayed(Duration.zero, () {
+                  if (mounted) {
+                    setState(() {});
+                  }
+                });
+              },
             ),
+
             SwitchListTile(
               title: const Text("Activer le son"),
               value: _isSoundEnabled,
