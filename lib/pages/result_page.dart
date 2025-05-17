@@ -80,7 +80,7 @@ class _ResultsPageState extends State<ResultsPage> {
   Future<void> _saveToHistory() async {
     final percentage = (widget.score / widget.total * 100).round();
 
-    await QuizHistoryService.saveQuizResult({
+    await HiveQuizHistoryService.saveQuizResult({
       'score': widget.score,
       'total': widget.total,
       'percentage': percentage,
