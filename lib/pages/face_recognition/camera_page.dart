@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:provider/provider.dart';
 import '../../model/user.dart';
 import '../../settings/quiz_setting_page.dart';
+import '../../state/app_state.dart';
 import '../../utils/local_db.dart';
 import '../../widgets/common_widgets.dart';
 import '../home_page.dart';
@@ -115,32 +117,23 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
 
       // ----- Cas de connexion (utilisateur existant) -----
       else {
-        // Tente de reconnaître l'utilisateur
         final recognizedUser = await _mlService.predictFromFile(File(image.path));
 
         if (recognizedUser != null) {
-          // Sauvegarde l'utilisateur reconnu localement
           await LocalDB.saveUser(recognizedUser);
 
-          // Navigue vers la page d'accueil
+          final appState = Provider.of<AppState>(context, listen: false);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (_) => QuizSettingsPage(
-                currentLanguage: 'fr', // adapte selon la logique de ton appli
-                onChangeLanguage: (lang) {
-                  // Implémente une logique pour changer la langue si nécessaire
-                },
-                isDarkMode: false, // adapte selon l'état actuel du thème
-                onThemeChanged: (isDark) {
-                  // Implémente une logique pour changer le thème si nécessaire
-                },
+                currentLanguage: appState.language,
+                onChangeLanguage: appState.setLanguage,
+                isDarkMode: appState.isDarkMode,
+                onThemeChanged: appState.setDarkMode,
               ),
             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Face not recognized. Please try again.')),
           );
         }
       }
