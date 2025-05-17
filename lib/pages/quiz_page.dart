@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:mini_projet/pages/result_page.dart';
 import '../model/score_model.dart';
 import '../services/quiz_service.dart';
 import '../model/quiz_model.dart';
@@ -32,11 +33,12 @@ class _QuizPageState extends State<QuizPage> {
   late Timer _timer;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final int _questionDuration = 30;
+  late bool _isSoundEnabled;
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    // Timer will be started in didChangeDependencies after args loaded
   }
 
   @override
@@ -52,27 +54,30 @@ class _QuizPageState extends State<QuizPage> {
         if (_timeLeft > 0) {
           _timeLeft--;
           if (_timeLeft == 5) {
-            _playSound('warning');
+            _playSound('assets/sounds/warning.wav');
           }
         } else {
-          _playSound('timeout');
+          _playSound('assets/sounds/timeout.wav');
           _moveToNextQuestion();
         }
       });
     });
   }
 
-  Future<void> _playSound(String soundType) async {
+  Future<void> _playSound(String assetPath) async {
+    if (!_isSoundEnabled) return;
     try {
-      final soundFile = 'sounds/${soundType}_${widget.currentLanguage}.wav';
-      await _audioPlayer.play(AssetSource(soundFile));
+      await _audioPlayer.play(AssetSource(assetPath.replaceFirst('assets/', '')));
     } catch (e) {
       debugPrint('Error playing sound: $e');
     }
   }
 
-  void _moveToNextQuestion() {
+  void _moveToNextQuestion() async {
     _timer.cancel();
+    final questions = await _questions;
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+
     setState(() {
       if (_currentQuestionIndex < _totalQuestions - 1) {
         _currentQuestionIndex++;
@@ -82,13 +87,18 @@ class _QuizPageState extends State<QuizPage> {
         _startTimer();
       } else {
         _saveScore();
-        Navigator.pushReplacementNamed(
+        Navigator.pushReplacement(
           context,
-          '/results',
-          arguments: {
-            'score': _score,
-            'total': _totalQuestions,
-          },
+          MaterialPageRoute(
+            builder: (context) => ResultsPage(
+              score: _score,
+              total: _totalQuestions,
+              questions: questions,
+              currentLanguage: widget.currentLanguage,
+              translationService: widget.translationService,
+              quizArgs: args,
+            ),
+          ),
         );
       }
     });
@@ -110,12 +120,21 @@ class _QuizPageState extends State<QuizPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)!.settings.arguments as Map;
+    _isSoundEnabled = args['isSoundEnabled'] ?? true;
     _totalQuestions = args['numberOfQuestions'] as int;
-    _questions = QuizService().fetchQuestions(
-      args['category'] as String,
-      args['difficulty'] as String,
-      _totalQuestions,
-    );
+
+
+    if (args.containsKey('preloadedQuestions')) {
+      _questions = Future.value(args['preloadedQuestions'] as List<Question>);
+    } else {
+      _questions = QuizService().fetchQuestions(
+        args['category'] as String,
+        args['difficulty'] as String,
+        _totalQuestions,
+      );
+    }
+
+    _startTimer();
   }
 
   void _answerQuestion(String selectedOption, String correctAnswer) async {
@@ -133,12 +152,22 @@ class _QuizPageState extends State<QuizPage> {
       _isAnswerSelected = true;
       _selectedAnswer = selectedOption;
 
-      if (translatedSelected == translatedCorrect) {
+      bool isCorrect = translatedSelected == translatedCorrect;
+
+      if (isCorrect) {
         _score++;
-        _playSound('correct');
+        _playSound('assets/sounds/correct.wav');
       } else {
-        _playSound('wrong');
+        _playSound('assets/sounds/wrong.wav');
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isCorrect ? 'Correct!' : 'Incorrect!'),
+          backgroundColor: isCorrect ? Colors.green : Colors.red,
+          duration: const Duration(milliseconds: 1500),
+        ),
+      );
 
       Future.delayed(const Duration(milliseconds: 1500), () {
         _moveToNextQuestion();
@@ -185,11 +214,21 @@ class _QuizPageState extends State<QuizPage> {
         final displayText = snapshot.data ?? option;
 
         Color buttonColor = Colors.white;
-        if (_isAnswerSelected) {
-          if (isSelected) {
-            buttonColor = isCorrect ? Colors.green.shade100 : Colors.red.shade100;
-          } else if (isCorrect) {
+        Color borderColor = Colors.grey.shade300;
+        Color textColor = Colors.black;
+        IconData? icon;
+
+        if (_isAnswerSelected && isSelected) {
+          if (isCorrect) {
             buttonColor = Colors.green.shade100;
+            borderColor = Colors.green;
+            textColor = Colors.green.shade900;
+            icon = Icons.check;
+          } else {
+            buttonColor = Colors.red.shade100;
+            borderColor = Colors.red;
+            textColor = Colors.red.shade900;
+            icon = Icons.close;
           }
         }
 
@@ -198,12 +237,7 @@ class _QuizPageState extends State<QuizPage> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             color: buttonColor,
-            border: Border.all(
-              color: _isAnswerSelected && isSelected
-                  ? isCorrect ? Colors.green : Colors.red
-                  : Colors.grey.shade300,
-              width: 1.5,
-            ),
+            border: Border.all(color: borderColor, width: 1.5),
           ),
           child: Material(
             color: Colors.transparent,
@@ -219,21 +253,11 @@ class _QuizPageState extends State<QuizPage> {
                     Expanded(
                       child: Text(
                         displayText,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: _isAnswerSelected && isSelected
-                              ? isCorrect
-                              ? Colors.green.shade900
-                              : Colors.red.shade900
-                              : Colors.black,
-                        ),
+                        style: TextStyle(fontSize: 16, color: textColor),
                       ),
                     ),
-                    if (_isAnswerSelected && isSelected)
-                      Icon(
-                        isCorrect ? Icons.check : Icons.close,
-                        color: isCorrect ? Colors.green : Colors.red,
-                      ),
+                    if (_isAnswerSelected && isSelected && icon != null)
+                      Icon(icon, color: textColor),
                   ],
                 ),
               ),
@@ -295,9 +319,7 @@ class _QuizPageState extends State<QuizPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: Colors.deepPurple,
-              ),
+              child: CircularProgressIndicator(color: Colors.deepPurple),
             );
           }
 
@@ -340,12 +362,7 @@ class _QuizPageState extends State<QuizPage> {
                       final option = currentQuestion.options[index];
                       final isCorrect = option == currentQuestion.correctAnswer;
                       final isSelected = option == _selectedAnswer;
-
-                      return _buildTranslatedOption(
-                        option,
-                        isCorrect,
-                        isSelected,
-                      );
+                      return _buildTranslatedOption(option, isCorrect, isSelected);
                     },
                   ),
                 ),
@@ -366,10 +383,7 @@ class _QuizPageState extends State<QuizPage> {
           const SizedBox(height: 24),
           Text(
             message,
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.deepPurple,
-            ),
+            style: const TextStyle(fontSize: 18, color: Colors.deepPurple),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),

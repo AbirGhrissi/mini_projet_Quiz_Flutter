@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:mini_projet/pages/quiz_page.dart';
 import '../services/translation_service.dart';
+import '../model/quiz_model.dart';
+import '../services/quiz_history_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ResultsPage extends StatefulWidget {
+  final int score;
+  final int total;
+  final List<Question> questions;
   final String currentLanguage;
   final TranslationService translationService;
+  final Map<String, dynamic> quizArgs;
 
   const ResultsPage({
     super.key,
+    required this.score,
+    required this.total,
+    required this.questions,
     required this.currentLanguage,
     required this.translationService,
+    required this.quizArgs,
   });
 
   @override
@@ -23,6 +35,8 @@ class _ResultsPageState extends State<ResultsPage> {
   void initState() {
     super.initState();
     _translateStaticTexts();
+    _saveToHistory();
+    _saveLastScore(); // <-- Important pour affichage dans Drawer
   }
 
   Future<void> _translateStaticTexts() async {
@@ -35,7 +49,7 @@ class _ResultsPageState extends State<ResultsPage> {
       'quiz_completed': 'You completed the quiz',
       'final_score': 'Final score',
       'new_quiz': 'New quiz',
-      'try_again': 'Try again',
+      'try_again': 'Try again with same questions',
       'success_threshold': '70% to pass',
     };
 
@@ -63,12 +77,25 @@ class _ResultsPageState extends State<ResultsPage> {
     });
   }
 
+  Future<void> _saveToHistory() async {
+    final percentage = (widget.score / widget.total * 100).round();
+
+    await QuizHistoryService.saveQuizResult({
+      'score': widget.score,
+      'total': widget.total,
+      'percentage': percentage,
+      'date': DateTime.now().toString(),
+    });
+  }
+
+  Future<void> _saveLastScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('lastScore', widget.score);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)!.settings.arguments as Map;
-    final score = args['score'] as int;
-    final total = args['total'] as int;
-    final percentage = (score / total * 100).round();
+    final percentage = (widget.score / widget.total * 100).round();
     final isSuccess = percentage >= 70;
 
     if (_isTranslating) {
@@ -149,7 +176,7 @@ class _ResultsPageState extends State<ResultsPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '$score / $total',
+                    '${widget.score} / ${widget.total}',
                     style: const TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
@@ -202,17 +229,37 @@ class _ResultsPageState extends State<ResultsPage> {
               ],
             ),
             const SizedBox(height: 20),
-            if (!isSuccess)
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  _translatedTexts['try_again'] ?? 'Try again',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.deepPurple,
-                  ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.deepPurple,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Colors.deepPurple),
                 ),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               ),
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => QuizPage(
+                      currentLanguage: widget.currentLanguage,
+                      translationService: widget.translationService,
+                    ),
+                    settings: RouteSettings(arguments: {
+                      ...widget.quizArgs,
+                      'preloadedQuestions': widget.questions,
+                    }),
+                  ),
+                );
+              },
+              child: Text(
+                _translatedTexts['try_again'] ??
+                    'Try again with same questions',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
           ],
         ),
       ),

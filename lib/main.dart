@@ -14,6 +14,7 @@ import 'pages/result_page.dart';
 import 'pages/leaderboard_page.dart';
 import 'services/translation_service.dart';
 import 'services/notification_service.dart';
+import 'pages/historique_page.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -136,11 +137,8 @@ class _MyAppState extends State<MyApp> {
           currentLanguage: _currentLanguage,
           translationService: _translationService,
         ),
-        '/results': (context) => ResultsPage(
-          currentLanguage: _currentLanguage,
-          translationService: _translationService,
-        ),
         '/leaderboard': (context) => const LeaderboardPage(),
+        '/history': (context) => const QuizHistoryPage(),
       },
     );
   }
