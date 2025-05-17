@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../model/user.dart';
 import '../pages/historique_page.dart';
 import '../pages/login_page.dart';
 import '../services/quiz_service.dart';
@@ -31,12 +34,20 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
   String _selectedDifficulty = 'easy';
   int _numberOfQuestions = 5;
   bool _isSoundEnabled = true; // État du son
-
+  User? _currentUser = LocalDB.getCurrentUser();
   @override
   void initState() {
     super.initState();
     _categories = QuizService().fetchCategories();
+    _loadCurrentUser();
   }
+  void _loadCurrentUser() async {
+    final user = await LocalDB.getCurrentUser();
+    setState(() {
+      _currentUser = user;
+    });
+  }
+
 
   String _translate(String key) {
     final translations = {
@@ -88,13 +99,34 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
+            DrawerHeader(
               decoration: BoxDecoration(color: Colors.deepPurple),
-              child: Text(
-                'Paramètres',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_currentUser != null && _currentUser!.imageBase64 != null)
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundImage: MemoryImage(
+                        base64Decode(_currentUser!.imageBase64),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _currentUser != null && _currentUser!.name != null
+                        ? "Bienvenue, ${_currentUser!.name} "
+                        : "Bienvenue ",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
+
             SwitchListTile(
               title: const Text("Mode Sombre"),
               value: widget.isDarkMode,
