@@ -1,51 +1,49 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
+import '../utils/local_db.dart';
 
-class QuizHistoryService {
-  static const _historyKey = 'quizHistory';
+class HiveQuizHistoryService {
+  static const String _boxName = 'quizHistoryBox';
 
-  /// Sauvegarde un résultat de quiz dans l'historique.
-  /// Le paramètre [result] est une Map contenant les détails du résultat.
+  static Future<Box<List>> _getBox() async {
+    return Hive.box<List>(_boxName);
+  }
+
+  static String? _getUserKey() {
+    final user = LocalDB.getCurrentUser();
+    return user?.name;
+  }
+
+  /// Sauvegarder un résultat pour l'utilisateur courant
   static Future<void> saveQuizResult(Map<String, dynamic> result) async {
-    final prefs = await SharedPreferences.getInstance();
-    final historyJson = prefs.getString(_historyKey);
+    final box = await _getBox();
+    final userKey = _getUserKey();
+    if (userKey == null) return;
 
-    List<Map<String, dynamic>> history = [];
-    if (historyJson != null) {
-      // Charger l'historique existant
-      final List<dynamic> decoded = jsonDecode(historyJson);
-      history = decoded.cast<Map<String, dynamic>>();
+    final existing = box.get(userKey, defaultValue: [])!.cast<Map>();
+    final updated = [result, ...existing];
+
+    if (updated.length > 50) {
+      updated.removeRange(50, updated.length);
     }
 
-    // Ajouter le nouveau résultat au début (optionnel)
-    history.insert(0, result);
-
-    // Limiter l'historique à 50 entrées max (optionnel)
-    if (history.length > 50) {
-      history = history.sublist(0, 50);
-    }
-
-    // Sauvegarder l'historique mis à jour
-    final encoded = jsonEncode(history);
-    await prefs.setString(_historyKey, encoded);
+    await box.put(userKey, updated);
   }
 
-  /// Récupère tout l'historique de quiz.
+  /// Récupérer l'historique de l'utilisateur courant
   static Future<List<Map<String, dynamic>>> getQuizHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final historyJson = prefs.getString(_historyKey);
+    final box = await _getBox();
+    final userKey = _getUserKey();
+    if (userKey == null) return [];
 
-    if (historyJson == null) {
-      return [];
-    }
-
-    final List<dynamic> decoded = jsonDecode(historyJson);
-    return decoded.cast<Map<String, dynamic>>();
+    final history = box.get(userKey, defaultValue: [])!.cast<Map>();
+    return history.cast<Map<String, dynamic>>();
   }
 
-  /// Efface l'historique complet
+  /// Supprimer l'historique de l'utilisateur courant
   static Future<void> clearHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_historyKey);
+    final box = await _getBox();
+    final userKey = _getUserKey();
+    if (userKey == null) return;
+    await box.delete(userKey);
   }
 }
