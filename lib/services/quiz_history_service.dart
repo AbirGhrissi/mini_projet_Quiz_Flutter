@@ -19,8 +19,10 @@ class HiveQuizHistoryService {
     final userKey = _getUserKey();
     if (userKey == null) return;
 
-    final existing = box.get(userKey, defaultValue: [])!.cast<Map>();
-    final updated = [result, ...existing];
+    final existing = box.get(userKey, defaultValue: [])!;
+    final casted = existing.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
+
+    final updated = [result, ...casted];
 
     if (updated.length > 50) {
       updated.removeRange(50, updated.length);
@@ -28,6 +30,21 @@ class HiveQuizHistoryService {
 
     await box.put(userKey, updated);
   }
+  /// meilleur score
+  static Future<Map<String, dynamic>?> getBestScore() async {
+    final box = await _getBox();
+    final userKey = _getUserKey();
+    if (userKey == null) return null;
+
+    final history = box.get(userKey, defaultValue: [])!;
+    final casted = history.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
+
+    if (casted.isEmpty) return null;
+
+    casted.sort((a, b) => (b['percentage'] as num).compareTo(a['percentage'] as num));
+    return casted.first;
+  }
+
 
   /// Récupérer l'historique de l'utilisateur courant
   static Future<List<Map<String, dynamic>>> getQuizHistory() async {
@@ -46,4 +63,6 @@ class HiveQuizHistoryService {
     if (userKey == null) return;
     await box.delete(userKey);
   }
+
+  static saveQuizHistory(List<Map<String, dynamic>> allHistory) {}
 }
