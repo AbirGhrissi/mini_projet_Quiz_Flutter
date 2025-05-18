@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:mini_projet/pages/login_page.dart';
 import 'package:mini_projet/state/app_state.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
+import 'firebase_options.dart';
 import 'model/user.dart';
 import 'settings/quiz_setting_page.dart';
 import 'pages/quiz_page.dart';
@@ -28,6 +30,12 @@ Future<void> main() async {
   }
 
   await LocalDB.init();
+
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await NotificationService.initialize();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -60,7 +68,6 @@ class _MyAppState extends State<MyApp> {
     final appState = Provider.of<AppState>(context, listen: false);
     _currentLanguage = appState.language;
     _translationService = _createTranslationService(appState.language);
-    _initializeNotifications();
   }
 
   TranslationService _createTranslationService(String language) {
@@ -70,10 +77,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  void _initializeNotifications() {
-    NotificationService().initialize();
-    NotificationService().showDailyReminder();
-  }
+
 
   @override
   void dispose() {
