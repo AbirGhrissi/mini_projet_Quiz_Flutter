@@ -8,7 +8,6 @@ import '../pages/login_page.dart';
 import '../services/quiz_service.dart';
 import '../utils/local_db.dart';
 
-
 class QuizSettingsPage extends StatefulWidget {
   final String currentLanguage;
   final Function(String) onChangeLanguage;
@@ -22,7 +21,7 @@ class QuizSettingsPage extends StatefulWidget {
     required this.onChangeLanguage,
     required this.isDarkMode,
     required this.onThemeChanged,
-    this.lastScore = 0, // valeur par défaut ici
+    this.lastScore = 0,
   }) : super(key: key);
 
   @override
@@ -34,21 +33,22 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
   String _selectedCategory = '9';
   String _selectedDifficulty = 'easy';
   int _numberOfQuestions = 5;
-  bool _isSoundEnabled = true; // État du son
+  bool _isSoundEnabled = true;
   User? _currentUser = LocalDB.getCurrentUser();
+
   @override
   void initState() {
     super.initState();
     _categories = QuizService().fetchCategories();
     _loadCurrentUser();
   }
+
   void _loadCurrentUser() async {
     final user = await LocalDB.getCurrentUser();
     setState(() {
       _currentUser = user;
     });
   }
-
 
   String _translate(String key) {
     final translations = {
@@ -80,9 +80,190 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
         'fr': 'Mode sombre',
         'ar': 'الوضع الداكن'
       },
+      'easy': {
+        'en': 'Easy',
+        'fr': 'Facile',
+        'ar': 'سهل',
+      },
+      'medium': {
+        'en': 'Medium',
+        'fr': 'Moyen',
+        'ar': 'متوسط',
+      },
+      'hard': {
+        'en': 'Hard',
+        'fr': 'Difficile',
+        'ar': 'صعب',
+      },
+      'questions': {
+        'en': 'questions',
+        'fr': 'questions',
+        'ar': 'أسئلة',
+      },
+      'category_general_knowledge': {
+        'fr': 'Culture générale',
+        'en': 'General Knowledge',
+        'ar': 'المعرفة العامة',
+      },
+      'category_entertainment_books': {
+        'fr': 'Livres',
+        'en': 'Entertainment: Books',
+        'ar': 'كتب',
+      },
+      'category_entertainment_film': {
+        'fr': 'Films',
+        'en': 'Entertainment: Film',
+        'ar': 'أفلام',
+      },
+      'category_entertainment_music': {
+        'fr': 'Musique',
+        'en': 'Entertainment: Music',
+        'ar': 'موسيقى',
+      },
+      'category_entertainment_musicals_theatres': {
+        'fr': 'Comédies musicales et théâtres',
+        'en': 'Entertainment: Musicals & Theatres',
+        'ar': 'المسرحيات الموسيقية والمسرح',
+      },
+      'category_entertainment_television': {
+        'fr': 'Télévision',
+        'en': 'Entertainment: Television',
+        'ar': 'تلفزيون',
+      },
+      'category_entertainment_video_games': {
+        'fr': 'Jeux vidéo',
+        'en': 'Entertainment: Video Games',
+        'ar': 'ألعاب الفيديو',
+      },
+      'category_entertainment_board_games': {
+        'fr': 'Jeux de société',
+        'en': 'Entertainment: Board Games',
+        'ar': 'ألعاب الطاولة',
+      },
+      'category_science_nature': {
+        'fr': 'Science et nature',
+        'en': 'Science & Nature',
+        'ar': 'العلوم والطبيعة',
+      },
+      'category_science_computers': {
+        'fr': 'Informatique',
+        'en': 'Science: Computers',
+        'ar': 'الحواسيب',
+      },
+      'category_science_mathematics': {
+        'fr': 'Mathématiques',
+        'en': 'Science: Mathematics',
+        'ar': 'الرياضيات',
+      },
+      'category_mythology': {
+        'fr': 'Mythologie',
+        'en': 'Mythology',
+        'ar': 'الأساطير',
+      },
+      'category_sports': {
+        'fr': 'Sports',
+        'en': 'Sports',
+        'ar': 'الرياضة',
+      },
+      'category_geography': {
+        'fr': 'Géographie',
+        'en': 'Geography',
+        'ar': 'الجغرافيا',
+      },
+      'category_history': {
+        'fr': 'Histoire',
+        'en': 'History',
+        'ar': 'التاريخ',
+      },
+      'category_politics': {
+        'fr': 'Politique',
+        'en': 'Politics',
+        'ar': 'السياسة',
+      },
+      'category_art': {
+        'fr': 'Art',
+        'en': 'Art',
+        'ar': 'الفن',
+      },
+      'category_celebrities': {
+        'fr': 'Célébrités',
+        'en': 'Celebrities',
+        'ar': 'المشاهير',
+      },
+      'category_animals': {
+        'fr': 'Animaux',
+        'en': 'Animals',
+        'ar': 'الحيوانات',
+      },
+      'category_vehicles': {
+        'fr': 'Véhicules',
+        'en': 'Vehicles',
+        'ar': 'المركبات',
+      },
+      'category_entertainment_comics': {
+        'fr': 'Bandes dessinées',
+        'en': 'Entertainment: Comics',
+        'ar': 'القصص المصورة',
+      },
+      'category_science_gadgets': {
+        'fr': 'Gadgets',
+        'en': 'Science: Gadgets',
+        'ar': 'الأدوات',
+      },
+        'category_entertainment_japanese_anime_manga': {
+          'fr': 'Anime japonais et Manga',
+          'en': 'Entertainment: Japanese Anime & Manga',
+          'ar': 'الأنمي والمانغا اليابانية',
+        },
+        'category_entertainment_cartoon_animations': {
+          'fr': 'Dessins animés',
+          'en': 'Entertainment: Cartoon & Animations',
+          'ar': 'الرسوم المتحركة',
+        },
+      'welcome_message': {
+        'en': 'Welcome, {name}',
+        'fr': 'Bienvenue, {name}',
+        'ar': 'مرحبا بك، {name}'
+      },
+      'welcome_generic': {
+        'en': 'Welcome',
+        'fr': 'Bienvenue',
+        'ar': 'مرحبا بك'
+      },
     };
 
     return translations[key]?[widget.currentLanguage] ?? key;
+  }
+
+  String _translateWithParams(String key, Map<String, String> params) {
+    String translation = _translate(key);
+    params.forEach((key, value) {
+      translation = translation.replaceAll('{$key}', value);
+    });
+    return translation;
+  }
+
+  String _getCategoryTranslationKey(String categoryName) {
+    // Liste des correspondances spéciales
+    final specialCases = {
+      'Entertainment: Japanese Anime & Manga': 'category_entertainment_japanese_anime_manga',
+      'Entertainment: Cartoon & Animations': 'category_entertainment_cartoon_animations',
+      'Science & Nature': 'category_science_nature',
+      'Entertainment: Musicals & Theatres': 'category_entertainment_musicals_theatres',
+      // Ajoutez d'autres cas spéciaux si nécessaire
+    };
+
+    // Vérifie d'abord si c'est un cas spécial
+    if (specialCases.containsKey(categoryName)) {
+      return specialCases[categoryName]!;
+    }
+
+    // Conversion standard pour les autres cas
+    return 'category_${categoryName.toLowerCase()
+        .replaceAll(' ', '_')
+        .replaceAll(':', '')
+        .replaceAll('&', '')
+        .replaceAll(' ', '')}';
   }
 
   @override
@@ -121,26 +302,22 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                   const SizedBox(height: 8),
                   Text(
                     _currentUser != null && _currentUser!.name != null
-                        ? "Bienvenue, ${_currentUser!.name} "
-                        : "Bienvenue ",
+                        ? _translateWithParams('welcome_message', {'name': _currentUser!.name!})
+                        : _translate('welcome_generic'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
+                  )
                 ],
               ),
             ),
-
             SwitchListTile(
               title: Text(_translate("mode_sombre")),
               value: widget.isDarkMode,
               onChanged: (value) {
-                // Force un rebuild complet avec la nouvelle valeur
                 widget.onThemeChanged(!widget.isDarkMode);
-
-                // Solution alternative si le rebuild ne se fait pas
                 Future.delayed(Duration.zero, () {
                   if (mounted) {
                     setState(() {});
@@ -148,9 +325,12 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                 });
               },
             ),
-
             SwitchListTile(
-              title: const Text("Activer le son"),
+              title: Text(widget.currentLanguage == 'fr'
+                  ? "Activer le son"
+                  : widget.currentLanguage == 'en'
+                  ? "Enable sound"
+                  : "تفعيل الصوت"),
               value: _isSoundEnabled,
               onChanged: (value) {
                 setState(() {
@@ -166,7 +346,7 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                 value: widget.currentLanguage,
                 onChanged: (value) {
                   if (value != null) {
-                    widget.onChangeLanguage(value); // pareil, appelle parent directement
+                    widget.onChangeLanguage(value);
                   }
                 },
                 items: const [
@@ -176,14 +356,7 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                 ],
               ),
             ),
-            if (widget.lastScore != null)
-              ListTile(
-                leading: const Icon(Icons.score),
-                title: Text(
-                  '${_translate("last_score")} : ${widget.lastScore}/100',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
+
             ListTile(
               leading: const Icon(Icons.history),
               title: Text(_translate("history")),
@@ -197,7 +370,11 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout),
-              title: const Text('Déconnexion'),
+              title: Text(widget.currentLanguage == 'fr'
+                  ? 'Déconnexion'
+                  : widget.currentLanguage == 'en'
+                  ? 'Logout'
+                  : 'تسجيل الخروج'),
               onTap: () async {
                 Navigator.pop(context);
                 await LocalDB.logoutUser();
@@ -288,9 +465,13 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
         isExpanded: true,
         decoration: _inputDecoration(),
         items: categories.map((category) {
+          String translationKey = _getCategoryTranslationKey(category['name']!);
           return DropdownMenuItem<String>(
             value: category['id'],
-            child: Text(category['name']!, style: const TextStyle(fontSize: 16)),
+            child: Text(
+              _translate(translationKey),
+              style: const TextStyle(fontSize: 16),
+            ),
           );
         }).toList(),
         onChanged: (value) {
@@ -309,10 +490,10 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
         value: _selectedDifficulty,
         isExpanded: true,
         decoration: _inputDecoration(),
-        items: const [
-          DropdownMenuItem(value: 'easy', child: Text('Facile')),
-          DropdownMenuItem(value: 'medium', child: Text('Moyen')),
-          DropdownMenuItem(value: 'hard', child: Text('Difficile')),
+        items: [
+          DropdownMenuItem(value: 'easy', child: Text(_translate('easy'))),
+          DropdownMenuItem(value: 'medium', child: Text(_translate('medium'))),
+          DropdownMenuItem(value: 'hard', child: Text(_translate('hard'))),
         ],
         onChanged: (value) {
           setState(() {
@@ -330,10 +511,10 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
         value: _numberOfQuestions,
         isExpanded: true,
         decoration: _inputDecoration(),
-        items: const [
-          DropdownMenuItem(value: 5, child: Text('5 Questions')),
-          DropdownMenuItem(value: 10, child: Text('10 Questions')),
-          DropdownMenuItem(value: 15, child: Text('15 Questions')),
+        items: [
+          DropdownMenuItem(value: 5, child: Text('5 ${_translate('questions')}')),
+          DropdownMenuItem(value: 10, child: Text('10 ${_translate('questions')}')),
+          DropdownMenuItem(value: 15, child: Text('15 ${_translate('questions')}')),
         ],
         onChanged: (value) {
           setState(() {
@@ -393,7 +574,13 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Retour', style: TextStyle(fontSize: 16, color: Colors.black)),
+            child: Text(
+                widget.currentLanguage == 'fr'
+                    ? 'Retour'
+                    : widget.currentLanguage == 'en'
+                    ? 'Back'
+                    : 'العودة',
+                style: const TextStyle(fontSize: 16, color: Colors.black)),
           ),
         ],
       ),
