@@ -5,6 +5,7 @@ import '../pages/login_page.dart';
 import '../services/quiz_service.dart';
 import '../utils/local_db.dart';
 
+
 class QuizSettingsPage extends StatefulWidget {
   final String currentLanguage;
   final Function(String) onChangeLanguage;
@@ -18,7 +19,7 @@ class QuizSettingsPage extends StatefulWidget {
     required this.onChangeLanguage,
     required this.isDarkMode,
     required this.onThemeChanged,
-    this.lastScore,
+    this.lastScore = 0, // valeur par défaut ici
   }) : super(key: key);
 
   @override
@@ -30,7 +31,7 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
   String _selectedCategory = '9';
   String _selectedDifficulty = 'easy';
   int _numberOfQuestions = 5;
-  bool _isSoundEnabled = true; // État du son
+  bool _isSoundEnabled = true;
 
   @override
   void initState() {
@@ -62,7 +63,12 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
         'en': 'Quiz History',
         'fr': 'Historique des Quiz',
         'ar': 'سجل الاختبارات'
-      }
+      },
+      'mode_sombre': {
+        'en': 'Dark Mode',
+        'fr': 'Mode sombre',
+        'ar': 'الوضع الداكن'
+      },
     };
 
     return translations[key]?[widget.currentLanguage] ?? key;
@@ -96,9 +102,11 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
               ),
             ),
             SwitchListTile(
-              title: const Text("Mode Sombre"),
+              title: Text(_translate("mode_sombre")),
               value: widget.isDarkMode,
-              onChanged: widget.onThemeChanged,
+              onChanged: (value) {
+                widget.onThemeChanged(value);
+              },
               secondary: const Icon(Icons.dark_mode),
             ),
             SwitchListTile(
@@ -118,7 +126,7 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                 value: widget.currentLanguage,
                 onChanged: (value) {
                   if (value != null) {
-                    widget.onChangeLanguage(value);
+                    widget.onChangeLanguage(value); // pareil, appelle parent directement
                   }
                 },
                 items: const [
@@ -151,8 +159,8 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
               leading: const Icon(Icons.logout),
               title: const Text('Déconnexion'),
               onTap: () async {
-                Navigator.pop(context); // Ferme le drawer
-                await LocalDB.logoutUser(); // Déconnecte l'utilisateur (sans supprimer les données)
+                Navigator.pop(context);
+                await LocalDB.logoutUser();
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
                     builder: (context) => LoginPage(cameras: cameras),
@@ -163,7 +171,6 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
           ],
         ),
       ),
-
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: FutureBuilder<List<Map<String, String>>>(
@@ -203,7 +210,7 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
                           'category': _selectedCategory,
                           'difficulty': _selectedDifficulty,
                           'numberOfQuestions': _numberOfQuestions,
-                          'soundEnabled': _isSoundEnabled, // on transmet l’état du son
+                          'soundEnabled': _isSoundEnabled,
                         },
                       );
                     },

@@ -10,6 +10,9 @@ import '../../widgets/common_widgets.dart';
 import '../home_page.dart';
 import 'ml_service.dart';
 
+
+
+
 class FaceScanScreen extends StatefulWidget {
   final User? user;
   final List<CameraDescription> cameras;
@@ -127,11 +130,11 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => QuizSettingsPage(
-                currentLanguage: 'fr', // adapte selon la logique de ton appli
+                currentLanguage: 'en', // adapte selon la logique de ton appli
                 onChangeLanguage: (lang) {
                   // Implémente une logique pour changer la langue si nécessaire
                 },
-                isDarkMode: false, // adapte selon l'état actuel du thème
+                isDarkMode: true, // adapte selon l'état actuel du thème
                 onThemeChanged: (isDark) {
                   // Implémente une logique pour changer le thème si nécessaire
                 },

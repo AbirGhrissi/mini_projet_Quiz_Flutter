@@ -6,11 +6,9 @@ import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-
 import 'model/user.dart';
 import 'settings/quiz_setting_page.dart';
 import 'pages/quiz_page.dart';
-import 'pages/result_page.dart';
 import 'pages/leaderboard_page.dart';
 import 'services/translation_service.dart';
 import 'services/notification_service.dart';
@@ -34,9 +32,15 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Gestion des erreurs globales (compatible avec toutes les versions)
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+    print("Erreur non attrapée : $error");
+    print("StackTrace : $stack");
+    return true;
+  };
+
   runApp(MyApp(cameras: cameras));
 }
-
 
 class MyApp extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -54,23 +58,29 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _loadTheme();
-    _initTranslationService();
+    _loadPreferences();
     _initializeNotifications();
   }
 
-  void _initTranslationService() {
-    _translationService = TranslationService(
-      sourceLanguage: 'en',
-      targetLanguage: _currentLanguage,
-    );
-  }
-
-  Future<void> _loadTheme() async {
+  Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _isDarkMode = prefs.getBool('isDarkMode') ?? false;
+      _currentLanguage = prefs.getString('language') ?? 'fr';
+
+      // 🔍 Debug :
+      print("🌐 Langue chargée : $_currentLanguage");
+      print("🌙 Mode sombre activé : $_isDarkMode");
     });
+
+    _initTranslationService(_currentLanguage);
+  }
+
+  void _initTranslationService(String language) {
+    _translationService = TranslationService(
+      sourceLanguage: 'en',
+      targetLanguage: language,
+    );
   }
 
   Future<void> _setDarkMode(bool value) async {
@@ -78,19 +88,20 @@ class _MyAppState extends State<MyApp> {
     await prefs.setBool('isDarkMode', value);
     setState(() {
       _isDarkMode = value;
+      print("🎛️ Changement thème : $_isDarkMode");
     });
   }
 
-  void _changeLanguage(String newLanguage) async {
+  Future<void> _changeLanguage(String newLanguage) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', newLanguage);
     setState(() {
       _currentLanguage = newLanguage;
+      print("🈯 Changement langue : $_currentLanguage");
     });
 
     _translationService.dispose();
-    _translationService = TranslationService(
-      sourceLanguage: 'en',
-      targetLanguage: newLanguage,
-    );
+    _initTranslationService(newLanguage);
   }
 
   void _initializeNotifications() {
@@ -107,6 +118,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      //key: ValueKey('$_currentLanguage-$_isDarkMode'),
       debugShowCheckedModeBanner: false,
       title: 'Quiz App',
       theme: _isDarkMode
@@ -126,12 +138,13 @@ class _MyAppState extends State<MyApp> {
       ),
       initialRoute: '/auth',
       routes: {
-        '/auth': (context) => LoginPage(cameras: cameras),
-        '/': (context) => QuizSettingsPage(
-          currentLanguage: _currentLanguage,
-          onChangeLanguage: _changeLanguage,
-          onThemeChanged: _setDarkMode,
-          isDarkMode: _isDarkMode,
+        '/auth': (context) => LoginPage(cameras: widget.cameras),
+        '/' : (context) => QuizSettingsPage(
+            currentLanguage: _currentLanguage,
+            onChangeLanguage: _changeLanguage,
+            isDarkMode: _isDarkMode,
+            onThemeChanged: _setDarkMode, // ✅ ici la bonne fonction
+
         ),
         '/quiz': (context) => QuizPage(
           currentLanguage: _currentLanguage,
