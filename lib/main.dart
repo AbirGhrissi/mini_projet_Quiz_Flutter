@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mini_projet/pages/login_page.dart';
+import 'package:mini_projet/state/app_state.dart';
 import 'package:mini_projet/utils/local_db.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
 
 import 'model/user.dart';
 import 'settings/quiz_setting_page.dart';
@@ -32,14 +33,12 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Gestion des erreurs globales (compatible avec toutes les versions)
-  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
-    print("Erreur non attrapée : $error");
-    print("StackTrace : $stack");
-    return true;
-  };
-
-  runApp(MyApp(cameras: cameras));
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AppState()..loadPreferences(),
+      child: MyApp(cameras: cameras),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -51,57 +50,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _currentLanguage = 'fr';
-  bool _isDarkMode = false;
   late TranslationService _translationService;
+  String? _currentLanguage; // Pour suivre la langue actuelle
 
   @override
   void initState() {
     super.initState();
-    _loadPreferences();
+    final appState = Provider.of<AppState>(context, listen: false);
+    _currentLanguage = appState.language;
+    _translationService = _createTranslationService(appState.language);
     _initializeNotifications();
   }
 
-  Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDarkMode = prefs.getBool('isDarkMode') ?? false;
-      _currentLanguage = prefs.getString('language') ?? 'fr';
-
-      // 🔍 Debug :
-      print("🌐 Langue chargée : $_currentLanguage");
-      print("🌙 Mode sombre activé : $_isDarkMode");
-    });
-
-    _initTranslationService(_currentLanguage);
-  }
-
-  void _initTranslationService(String language) {
-    _translationService = TranslationService(
+  TranslationService _createTranslationService(String language) {
+    return TranslationService(
       sourceLanguage: 'en',
       targetLanguage: language,
     );
-  }
-
-  Future<void> _setDarkMode(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', value);
-    setState(() {
-      _isDarkMode = value;
-      print("🎛️ Changement thème : $_isDarkMode");
-    });
-  }
-
-  Future<void> _changeLanguage(String newLanguage) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('language', newLanguage);
-    setState(() {
-      _currentLanguage = newLanguage;
-      print("🈯 Changement langue : $_currentLanguage");
-    });
-
-    _translationService.dispose();
-    _initTranslationService(newLanguage);
   }
 
   void _initializeNotifications() {
@@ -117,41 +82,49 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      //key: ValueKey('$_currentLanguage-$_isDarkMode'),
-      debugShowCheckedModeBanner: false,
-      title: 'Quiz App',
-      theme: _isDarkMode
-          ? ThemeData.dark().copyWith(
-        primaryColor: Colors.deepPurple,
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.deepPurple,
-          secondary: Colors.deepPurpleAccent,
-        ),
-      )
-          : ThemeData.light().copyWith(
-        primaryColor: Colors.deepPurple,
-        colorScheme: const ColorScheme.light(
-          primary: Colors.deepPurple,
-          secondary: Colors.deepPurpleAccent,
-        ),
-      ),
-      initialRoute: '/auth',
-      routes: {
-        '/auth': (context) => LoginPage(cameras: widget.cameras),
-        '/' : (context) => QuizSettingsPage(
-            currentLanguage: _currentLanguage,
-            onChangeLanguage: _changeLanguage,
-            isDarkMode: _isDarkMode,
-            onThemeChanged: _setDarkMode, // ✅ ici la bonne fonction
+    return Consumer<AppState>(
+      builder: (context, appState, child) {
+        if (_currentLanguage != appState.language) {
+          _currentLanguage = appState.language;
+          _translationService.dispose();
+          _translationService = _createTranslationService(appState.language);
+        }
 
-        ),
-        '/quiz': (context) => QuizPage(
-          currentLanguage: _currentLanguage,
-          translationService: _translationService,
-        ),
-        '/leaderboard': (context) => const LeaderboardPage(),
-        '/history': (context) => const QuizHistoryPage(),
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Quiz App',
+          theme: appState.isDarkMode
+              ? ThemeData.dark().copyWith(
+            primaryColor: Colors.deepPurple,
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.deepPurple,
+              secondary: Colors.deepPurpleAccent,
+            ),
+          )
+              : ThemeData.light().copyWith(
+            primaryColor: Colors.deepPurple,
+            colorScheme: const ColorScheme.light(
+              primary: Colors.deepPurple,
+              secondary: Colors.deepPurpleAccent,
+            ),
+          ),
+          initialRoute: '/auth',
+          routes: {
+            '/auth': (context) => LoginPage(cameras: cameras),
+            '/': (context) => QuizSettingsPage(
+              currentLanguage: appState.language,
+              onChangeLanguage: (lang) => appState.setLanguage(lang),
+              onThemeChanged: (isDark) => appState.setDarkMode(isDark),
+              isDarkMode: appState.isDarkMode,
+            ),
+            '/quiz': (context) => QuizPage(
+              currentLanguage: appState.language,
+              translationService: _translationService,
+            ),
+            '/leaderboard': (context) => const LeaderboardPage(),
+            '/history': (context) => const QuizHistoryPage(),
+          },
+        );
       },
     );
   }

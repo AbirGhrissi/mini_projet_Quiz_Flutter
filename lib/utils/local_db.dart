@@ -5,15 +5,18 @@ import '../model/user.dart';
 class LocalDB {
   static late Box<User> _userBox;
   static late Box _metaBox;
+  static late Box<List> _quizHistoryBox;
 
   static const String _userBoxName = 'usersBox';
   static const String _metaBoxName = 'metaBox';
   static const String _currentUserKey = 'current_user';
+  static const String _quizHistoryBoxName = 'quizHistoryBox';
 
   static Future<void> init() async {
     printIfDebug('Initializing Hive ..********');
     _userBox = await Hive.openBox<User>(_userBoxName);
     _metaBox = await Hive.openBox(_metaBoxName); // boîte non typée pour stocker des données génériques comme des String
+    _quizHistoryBox = await Hive.openBox<List>(_quizHistoryBoxName);
     printIfDebug('Hive initialized successfully **********');
     printIfDebug('Current user key: ${_metaBox.get(_currentUserKey)}');
     printIfDebug('Users in DB: ${_userBox.keys.join(', ')}');
@@ -78,4 +81,4 @@ class LocalDB {
   static bool isUserExists(String name) {
     return _userBox.containsKey(name);
   }
-}
+ }

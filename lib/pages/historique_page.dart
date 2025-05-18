@@ -18,14 +18,14 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
   }
 
   Future<void> _loadHistory() async {
-    final history = await QuizHistoryService.getQuizHistory();
+    final history = await HiveQuizHistoryService.getQuizHistory();
     setState(() {
       _history = history;
     });
   }
 
   Future<void> _clearHistory() async {
-    await QuizHistoryService.clearHistory();
+    await HiveQuizHistoryService.clearHistory();
     setState(() {
       _history = [];
     });
