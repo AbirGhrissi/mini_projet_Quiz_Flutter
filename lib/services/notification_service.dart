@@ -1,15 +1,23 @@
-import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/material.dart';
 
 class NotificationService {
-  static final NotificationService _instance = NotificationService._internal();
-  factory NotificationService() => _instance;
-  NotificationService._internal();
-
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  static final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
   FlutterLocalNotificationsPlugin();
 
-  void initialize() async {
+  static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+  // Initialisation de Firebase Messaging & notifications locales
+  static Future<void> initialize() async {
+    // Demander les permissions (nécessaire sur iOS & Android 13+)
+    await _firebaseMessaging.requestPermission();
+
+    // Récupérer le token FCM (utile pour tester les notifications via Firebase Console)
+    String? token = await _firebaseMessaging.getToken();
+    print("🔑 Firebase Token: $token");
+
+    // Initialisation de la notification locale
     const AndroidInitializationSettings initializationSettingsAndroid =
     AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -17,29 +25,47 @@ class NotificationService {
       android: initializationSettingsAndroid,
     );
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-  }
-
-  Future<void> showDailyReminder() async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-    AndroidNotificationDetails(
-      'basic_channel', // channel ID
-      'Basic notifications', // channel name
-      channelDescription: 'Notification channel for basic notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      color: Color(0xFF9D50DD),
-      enableLights: true,
-      ledColor: Colors.white,
+    await _flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
     );
 
-    const NotificationDetails platformChannelSpecifics =
-    NotificationDetails(android: androidPlatformChannelSpecifics);
+    // Notifications reçues en premier plan
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('📩 Message reçu en premier plan: ${message.notification?.title}');
 
-    await flutterLocalNotificationsPlugin.show(
-      10,
-      'Quiz Time!',
-      'Testez vos connaissances avec un nouveau quiz aujourd\'hui!',
+      if (message.notification != null) {
+        showNotification(
+          title: message.notification!.title ?? '',
+          body: message.notification!.body ?? '',
+        );
+      }
+    });
+
+    // Notification cliquée (app ouverte depuis une notification)
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('📬 Notification ouverte: ${message.notification?.title}');
+      // TODO: Navigate or trigger action
+    });
+  }
+
+  // Afficher une notification locale
+  static Future<void> showNotification({required String title, required String body}) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+      'default_channel', // channel ID
+      'Default', // channel name
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+
+    await _flutterLocalNotificationsPlugin.show(
+      0, // ID de notification
+      title,
+      body,
       platformChannelSpecifics,
     );
   }
