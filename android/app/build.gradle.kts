@@ -45,5 +45,8 @@ dependencies {
     // Ajoute la dépendance pour le desugaring des librairies Java 8
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("org.tensorflow:tensorflow-lite-gpu:2.12.0")
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
+
     // Autres dépendances...
 }
+apply(plugin = "com.google.gms.google-services")
